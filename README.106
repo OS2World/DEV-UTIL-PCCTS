@@ -1,0 +1,250 @@
+
+                            Welcome to PCCTS 1.06
+
+                               December 1992
+
+
+                  Purdue University Electrical Engineering
+
+                                Terence Parr
+                                 Hank Dietz
+                                 Will Cohen
+
+
+                                INSTALLATION
+
+UNIX USERS
+
+     If you received your PCCTS copy via email, please see the section
+below concerning EMAIL RECIPIENTS.
+
+     PCCTS 1.06 includes a number of different programs and examples
+in the software release package -- most of which like to live in their
+own directories.  The install script will build a standard hierarchy.
+
+     The PCCTS executables (antlr, dlg) may be placed anywhere the user
+wishes but the install script places them in the bin directory created
+during installation.
+
+     To begin installation, the user should create a directory (usually
+called pccts) where the PCCTS source subtree is to be created.  Place
+the pccts.bag file and the install script into this directory and cd
+into it.  To install PCCTS, simply type
+ 
+     sh install
+
+which will build the standard PCCTS directory hierarchy (under the
+directory where you ran the install script), "unbag" all of the files
+and build executable versions of antlr and dlg.
+
+     The examples associated with PCCTS have makefile variables called
+ANTLR, DLG etc... which must be set according to your personal
+directory structure before make'ing.  Some variables point to the
+PCCTS executables if the PATH environment variable does not include
+your bin directory.  Also, there are variables that point to PCCTS
+include directories and must be changed if you deviate from the
+standard PCCTS installation hierarchy.  antlr and dlg can be built
+without executable versions of themselves (antlr and dlg are written
+in themselves).  The grammar files for antlr and dlg are included with
+this release.
+
+NON-UNIX USERS
+
+     ANTLR was written using portable (we hope), vanilla K&R-style C
+and ANSI C.  It has been successfully ported to PC's (large model,
+Microsoft C 6.0-- 16-bit integers, 32-bit pointers) and 68020-based
+Macs.  We do not provide an installation script for non-Unix users.
+You must interpret the install script and perform the analogous
+operations on your machine.  Briefly,
+
+     Create a directory for PCCTS.  Go inside.
+     Make the following sub-directories:
+          antlr dlg h support support/sym support/set support/rexpr
+          lang lang/C bin
+     Make the unbag executable with:
+          cc -o bin/unbag unbag.c
+     Run unbag on the main pccts.bag ('unbag pccts.bag').
+     Move all of the .bag files to the directories with their name.
+     Move genmk.c to the support directory
+     Run unbag on all .bag files from within their directories.
+     Rename all makefile.user files to makefile (in antlr, dlg, lang/C).
+     In antlr directory, create an empty parser.dlg
+         and make the scan.c date stamp new ("touch" it)
+     Make antlr
+     In dlg directory, create an empty parser.dlg
+         and make the scan.c date stamp new ("touch" it)
+     Make dlg
+     Compile genmk.c
+
+IMPORTANT NOTE:  You must create the parser.dlg and "touch" scan.c in
+                 antlr and dlg directories or the makefiles will try to
+                 execute antlr and dlg, which don't exist yet.  The first
+                 time, you want only to compile the C files in order to
+                 obtain an executable for antlr and dlg.  From this point,
+                 a change in antlr.g or dlg_p.g will force antlr/dlg to
+                 regenerate themselves.
+
+IMPORTANT NOTE:  See the notes about WORD SIZE below.  You MUST
+                 "#define PC" for the preprocessor so that the word size
+                 will be 16bits for int's IF you have a machine with
+                 this size; e.g. a IBM PC clone.
+
+     For Mac programmers using MPW (Maciontosh Programmer's Workshop),
+an "#ifdef MPW" is included to print error messages that can be
+"executed" to highlight the error location.  In other words, the line
+in the file where the error occured will be highlighted by hitting
+"enter" over the error message.  Add "-d MPW" to your list of compile
+flags.  See generic.h in antlr directory.
+
+EMAIL VERSION RECIPIENTS
+
+     If you received PCCTS via email response from
+pccts@ecn.purdue.edu you have one additional installation step to
+perform over the ftp folks.  You will have received a number of
+bite-size chunks of pccts which are small enough to be emailed (~1500
+lines each).  You must reconstruct the PCCTS files before you can
+begin installation.  In order to rebuild an original file, you must
+have "one.c" which will take the chunks and pack them together.  If
+you are a non-UNIX type, you must have the "unbag.c" file which unbags
+the bags created by our mail archiver.  UNIX folks use the shell to
+unbag as they would for shar files (this will be done automatically by
+the install script).
+
+     To install PCCTS, place all PCCTS mail messages into a pccts
+directory, remove the mail headers from one.c, and install.  Then
+compile one.c with:
+
+     cc -o one one.c
+
+and then type:
+
+     ./one f1 f2 ... fn
+
+where f1..fn are the parts of PCCTS source sent as chunks (i.e. these
+files will be all the files you received NOT including one.c, unbag.c,
+README, install and the request acknowledge banner).  There is no need
+to remove mail headers from the chunk files and they may appear in any
+order.  The subject line of the mail will identify it as a chunk and a
+chunk of what file.  The "one" program should be used to put pccts.bag
+back together.  You are now in a position to begin normal PCCTS
+installation.  All files you receive should go into a pccts directory.
+
+     Note that all files which arrive in "chunks" must be put back
+together using "one".  Beware that you do not mix chunks from more
+than one original file.  For instance, do not specify all chunks that
+you collect from the PCCTS mailbot on the "one" command line unless
+you have requested only one original file that was split into multiple
+files.  Each chunk knows which original file it is a part of, where it
+goes in that file and how many total chunks are required to rebuild
+that original.
+
+WORD SIZE
+
+     PCCTS makefiles assume 32-bit integers.  If you have 16-bit
+integers (or heaven-forbid another size), you must change set.h in
+support/set and output.c in dlg.  Both files have an "#ifdef PC"
+preprocessor command to change wordsize definitions.  You can add
+another "#ifdef" for your machine or specific wordsize.  If you have
+16-bit integers, you may simply define "PC" as a preprocessor flag (by
+changing the makefile variable "CFLAGS" to include "-DPC").
+
+                                TUTORIAL
+
+     The advanced tutorial should be placed in a directorty at the
+same level as antlr, dlg, support etc...  Do a
+
+     sh advtut.bag
+
+to unbag (or use the unbag program) and then type
+
+     make -s all
+
+which will create executables called tut1-tut4.  These executables
+correspond to the examples in the tutorial.
+
+                              NEW FEATURES
+
+The following bullet points are the headers in the file UPDATE106.text:
+
+o   Predicated Parsing -- EXTREMELY ALPHA
+
+o   1.06 Is Written in 1.00
+
+o   ANTLR Compiles Under ANSI C
+
+o   Grammar Files, antlr.g and dlg_p.g, Distributed
+
+o   Script Generates Makefiles for PCCTS Projects
+
+o   DLG Supports Case Insensitive Scanners
+
+o   Delayed Lookahead Fetches in Generated Parser
+
+o   Tutorials Available
+
+o   Error Messages for k>1 Improved
+
+o   Trace Facility has Exit Macro
+
+o   Resource Limitation
+
+o   Rule Prefix Option
+
+o   Standard PCCTS Header Generated
+
+o   Doubly-Linked AST's
+
+o   C++ Compatible Parsers
+
+
+                         MACHINE COMPATIBILITY
+
+PCCTS Version 1.06 has been successfully tested on the following
+platforms:
+
+o   Sun 3/60
+o   Sun SPARC I, II
+o   Encore Multimax running Umax 4.3
+o   Sun sparcstation IPX
+o   NeXTstation
+o   unknown VAX running Ultrix 4.2
+o   DEC 5000
+o   Linux on 386PC
+o   Microsoft C 6.0 on PC OS/2, DOS
+o   CSET/2 C compiler on PC OS/2
+o   IBM RS6000
+o   MIPS 4000
+
+
+                           INCOMPATIBILITIES
+
+     Due to the bug fixes in 1.06, new ambiguities may appear in your
+grammar.  These were always there--ANTLR simply did not find them.
+The analysis is more correct.
+
+	Calls to zzTRACE are no longer generated by the -gd option.  Now,
+zzTRACEIN, zzTRACEOUT are called at the beginning and end of
+functions, respectively.
+
+     The way in which PCCTS translates actions has been changed; before
+they were parsed with a C function, now the #lexclass facility is
+being used.  Some differences in translation may be discovered; e.g. a
+character may need to be escaped with \ whereas before the simple
+character was sufficient.
+
+     The user should no longer set the next token of lookahead or the
+text of the next token in the lexical analyzer using LA(1) and
+LATEXT(1).  This is incompatible with the -gk option; hence, NLA and
+NLATEXT should be used instead where the N means next.
+
+     The -ga does not generate anything different as the code
+generator now dumps both K&R and ANSI with #ifdef's around the ANSI
+code.
+
+     Previously, no prototype was given when -ga was off.  Now,
+prototypes are always generated (with the appropriated #ifdef's).
+These prototypes can conflict with the outside environment if the rule
+names are things like if and stat (which is a system call).  Use the
+-gp prefix option to prefix all functions corresponding to rules with
+a string of your choice.
+

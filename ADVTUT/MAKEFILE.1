@@ -1,0 +1,22 @@
+#
+# Makefile for 1.0x tutorial (no symbol table stuff): tut1.g
+# ANTLR creates parser.dlg, err.c, tut1.c, tokens.h
+# DLG creates scan.c, mode.h
+#
+CFLAGS= -I. -I../h
+GRM=tut1
+ANTLR=../bin/antlr
+DLG=../bin/dlg
+SRC=scan.c $(GRM).c err.c
+OBJ=scan.o $(GRM).o err.o
+
+tutorial: $(OBJ) $(SRC)
+	cc -o $(GRM) $(OBJ)
+
+# build a parser and lexical description from a language description
+$(GRM).c parser.dlg : $(GRM).g
+	$(ANTLR) -k 2 $(GRM).g
+
+# build the scanner from a lexical description
+scan.c : parser.dlg
+	$(DLG) -C2 parser.dlg scan.c

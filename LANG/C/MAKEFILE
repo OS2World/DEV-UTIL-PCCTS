@@ -1,0 +1,24 @@
+SYM=../../support/sym
+H=../../h
+SRC=scan.c decl.c func.c expr.c err.c main.c $(SYM)/sym.c engl.c
+OBJ=scan.o decl.o func.o expr.o err.o main.o sym.o engl.o
+CFLAGS=-I. -I$(H)
+AFLAGS=-k $(K) -gt -gh
+# where are dlg and antlr binaries
+DLG=../../bin/dlg
+ANTLR=../../bin/antlr
+K=2		# tokens of lookahead
+
+proto: $(OBJ) $(SRC)
+	cc -o proto $(OBJ)
+
+decl.c func.c expr.c err.c stdpccts.h parser.dlg : decl.g func.g expr.g
+	$(ANTLR) $(AFLAGS) decl.g func.g expr.g
+
+main.o engl.o : stdpccts.h
+
+scan.c : parser.dlg
+	$(DLG) -C2 parser.dlg scan.c
+
+sym.o : $(SYM)/sym.c
+		cc -c -o sym.o $(CFLAGS) $(SYM)/sym.c

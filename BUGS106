@@ -1,0 +1,187 @@
+
+
+
+          C u r r e n t  B U G  L i s t   1 . 0 6
+
+                       March 12, 1993
+
+
+(1)  The install.unbag.reqd file did not ensure that the makefiles  in
+     antlr  an dlg directories would compile antlr and dlg directly by
+     compiling all C files.  Without the fix, the makefiles  tried  to
+     regenerate  antlr.c  from antlr.g and dlg_p.c from dlg_p.g.  This
+     is impossible as they are written in  themselves  and  would  not
+     exist yet.  The fix, as per the latest README is:
+
+For non-UNIX folks:
+     You must create the parser.dlg and "touch" scan.c  in  antlr  and
+     dlg  directories  or  the makefiles will try to execute antlr and
+     dlg, which don't exist yet.  The first time,  you  want  only  to
+     compile  the  C  files in order to obtain an executable for antlr
+     and dlg.  From this point, a change in antlr.g  or  dlg_p.g  will
+     force antlr/dlg to regenerate themselves.
+
+(2)  ANTLR incorrectly handled return values and parameters because it
+     did  not  reset  a  few  pointers.  Here is a sample problem that
+     barfs:
+
+e>[int type] : ;
+
+p[int type]  : <<int ft = $type;>> ;
+
+It generates, for the action, "int ft = _retv" instead of the  correct
+"int  ft  = type".  The fix is simple.  Change line 374 of rule 'rule'
+in antlr.g FROM:
+
+    char *pdecl=NULL, *ret=NULL, *a;>>
+
+TO:
+
+    char *pdecl=NULL, *ret=NULL, *a; CurRetDef = CurParmDef = NULL;>>
+
+Or, change the corresponding C code in antlr.c--it's better to  update
+the  antlr.g  file, but REQUIRES THAT YOU HAVE AN ANTLR/DLG EXECUTABLE
+ALREADY.
+
+(3)  With respect to the beginning tutorial (from Gareth L de C Morgan
+     Esq, G.L.Morgan@durham.ac.uk) :  Section 4.1 (page 17) the rule:
+
+a   :   "hi" "[0-9]+" <<printf("$1, $2 are %d, %d0, $1, $2);>>
+    ;
+
+should read
+
+a   :   "hi" "[0-9]+" <<printf(",  are %d, %d0, $1, $2);>>
+    ;
+
+As the $i variables are translated to macros without the escape.
+
+
+
+                                                                Page 1
+
+                                                                 PCCTS
+
+
+Also in Section 4.1, page 15:  For the input
+
+begin hi 2 99 ptr
+
+the token stream should be:
+
+        (begin, begin)
+        (WORD, hi)
+        (INT, 2)
+        (INT, 99)
+        (WORD, ptr)
+
+(4)  Neal Holtz (nholtz@civeng.carleton.ca) found a problem with  DLG:
+     it  incorrectly  generated  a  table called 'accepts' which, upon
+     erroneous input, forced a call to  an  undefined  address.   This
+     problem  was  only  found  with the Borland C compiler on the PC.
+     Hopefully, others will not have found the problem.  Fix for  file
+     output.c:
+
+166,167c166
+< /* make sure element for one past (zzerraction) -WEC 12/16/92 */
+<       fprintf(OUT,"0faState accepts[%d] = { ",dfa_allocated+1);
+---
+>       fprintf(OUT,"0faState accepts[%d] = { ",dfa_allocated);
+194,195d192
+< /* make sure element for one past (zzerraction) -WEC 12/16/92 */
+<       fprintf(OUT, ", 0");
+
+
+(5)  Joe Hummel (jhummel@esp.ICS.UCI.EDU) found a problem in  rexpr.c.
+     In  his  words:   "The  last  thing the routine rexpr does before
+     returning is free the nodes/arcs on the freelist.  It  does  this
+     by  traversing  block  by  block  down  the list, via the "track"
+     field.  However, note the list is actually full  of  2  types  of
+     blocks,  Node and Arc.  But the track field has different offsets
+     in each type, thus it turns out only the Node's are freed and the
+     Arcs are incorrectly accessed."
+
+The solution is simple - move the track pointer field of the  Arc  and
+Node structures to the first field position:
+
+typedef struct _a {
+                    struct _a *track;   /* track mem allocation */
+                    int label;
+                    struct _a *next;
+                    struct _n *target;
+                } Arc, *ArcPtr;
+
+typedef struct _n {
+                    struct _n *track;
+                    ArcPtr arcs, arctail;
+                } Node, *NodePtr;
+
+
+
+
+
+                                                                Page 2
+
+                                                                 PCCTS
+
+
+(6)  WARNING: Users with 16-bit integers.
+
+     PCCTS Version 1.06 will complain if you try to compile it "out of
+     the  box"  with 16 bit integers even with the appropriate prepro-
+     cessor flag PC #define'd.  This is due to the fact that  1.06  is
+     written  in  1.00.   Portions of the source distributed for ANTLR
+     and DLG are generated on a  32-bit  machine  (by  ANTLR  itself).
+     Therefore,  the  set  routines  assumed  32-bits when they dumped
+     prediction and error sets to err.c.
+
+     FIX OPTIONS:
+
+     (1)  You can correct this, on your machine, by running ANTLR 1.00
+          on  antlr.g, in the antlr directory, and dlg_p.g, in the dlg
+          directory.  This will generate the parsers for ANTLR and DLG
+          using the "unsigned" size correct for you machine.
+
+     (2)  Grab  the  binaries  in  the  DOS_OS2.binaries  subdirectory
+          (under  pccts/1.06).   We  used option (1) under OS/2 to get
+          the correct parser C code.
+
+
+     (3)  Anywhere you see an "unsigned" definition in err.c for  both
+          antlr  and  dlg  directories  (everywhere  if you want to be
+          safe) convert it to "unsigned long".
+
+
+     NOTE PC must still be defined so that  the  set.c  routines  will
+          assume 16-bit integers.
+
+
+(7)  The -gp prefix option is broken.  The  rule/function  definitions
+     are  prefixed, but some references to them are not.  To fix this,
+     change line 443 of gen.c from:
+
+     _gen2("%s(%s);", p->text, (p->parms!=NULL)?p->parms:"");
+
+to
+
+     _gen3("%s%s(%s);", RulePrefix, p->text, (p->parms!=NULL)?p->parms:"");
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                Page 3
+
+

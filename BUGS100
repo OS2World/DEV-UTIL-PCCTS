@@ -1,0 +1,497 @@
+
+
+
+               C u r r e n t  B U G  L i s t
+
+                      December 1, 1992
+
+
+(1)  Only lexical class START could have over 100 tokens.
+
+
+(2)  Ambiguity messages were printing junk when the  grammar  did  not
+     end  up in lexclass START at the end of the file. (fix is too big
+     for this posting)
+
+
+(3)  This bug causes antlr to suffer  segmentation  faults/bus  errors
+     when  processing a grammar that has multiple lexical classes (say
+     7) and over 200 token definitions.  This is the same as bug (1).
+
+The bug is in misc.c at lines 58-64:
+
+for (i=0; i<NumLexClasses; i++)
+{
+  lclass[i].exprs = (char **)
+            realloc(lclass[i].exprs, tsize*sizeof(char *));
+  require(lclass[i].exprs != NULL, "Ttrack: can't extend ExprStr");
+  for (p= &lclass[i].exprs[tsize-more],i=1; i<=more; i++) *p++ = NULL;
+}
+
+Here is the fix (thanks to Mark Scheevel):
+
+for (i=0; i<NumLexClasses; i++)
+{
+  int j;
+  lclass[i].exprs = (char **)
+            realloc(lclass[i].exprs, tsize*sizeof(char *));
+  require(lclass[i].exprs != NULL, "Ttrack: can't extend ExprStr");
+  for (p= &lclass[i].exprs[tsize-more],j=1; j<=more; j++) *p++ =NULL;
+}
+
+Thanks to Mark Scheevel and  Tom  Reyes  (unisql!treyes@cs.utexas.edu)
+for this bug report and fix.
+
+
+(4)  When one.c encountered  an  error,  it  printed  random  garbage.
+     one.c:  The line in the 'extract()' routine which reads:
+
+fprintf(stderr,"unbag: line %d: bad file format: %s\n", stop, line);
+
+should read:
+
+fprintf(stderr,"unbag: line %d: bad file format: %s\n", line, text);
+
+Thanks to Fred Scholldorf (scholldorf@nuclear.physics.sunysb.edu).
+
+
+
+
+
+                                                                Page 1
+
+                                                                 PCCTS
+
+
+(5)  When compiling antlr on a MC 680x0 system with  gnus  gcc  (2.1),
+     you  have  to add -fwriteable-strings to CFLAGS. Otherwise, antlr
+     will dump core.
+
+From: pia@hotmama.toppoint.de
+
+
+(6)  Regarding the C front-end example provided with ANTLR,  line  299
+     must be removed from main.c:
+
+fprintf(" %s\n", a->data.s.name);
+
+which is obviously wrong without a stream parameter and is a duplicate
+of the line after it anyway.  Another cut-n-paste error, I guess.
+
+(7)  A bug in set.c allowed malloc() and friends to be called  with  a
+     size  argument  of 0 which caused problems on some machines.  The
+     fix causes malloc() to be called less resulting in  slight  speed
+     improvements to DLG, and ANTLR.
+
+
+file set.c INSERT
+
+    if ( n == 0 ) return t;     /* TJP 4-27-92 fixed for empty set */
+
+in func set_and() in context:
+
+    n = (b.n > c.n) ? c.n : b.n;
+--->[INSERT]
+    set_ext(&t, n);
+
+and in func set_dif() in context:
+
+    n = (b.n <= c.n) ? b.n : c.n ;
+--->[INSERT]
+    set_ext(&t, b.n);
+
+in func set_ex() INSERT
+
+        if ( n == 0 ) return;
+
+in context:
+
+    if ( a->n == 0 )
+    {
+------->[INSERT]
+        a->setword = (unsigned *) calloc(n, BytesPerWord);
+
+Also note that an extra, slightly different copy of set.c was included
+in  the  DLG bag.  This version is not used by the makefile in the DLG
+directory and can be ignored.
+
+(8)  ANTLR generates unknown escape  sequences  in  scan.c  and  err.c
+     because  it  dumps  your token definitions verbatim to the output
+
+
+
+                                                                Page 2
+
+                                                                 PCCTS
+
+
+     files.  You get messages like:
+
+err.c:113: warning: unknown escape sequence `\+'
+
+One user, ggf@saifr00.cfsat.honeywell.com (Gary  Frederick),  overcame
+this by:
+
+> I 'escaped' the above lines by doing this to err.c
+>      /* 04 */        "\\*/",
+>      /* 05 */        "\\>\\>",
+
+These are only warnings, but give you "+" instead  of  "\+"  when  you
+print a token in your program.
+
+(9)  In order to compile with gcc version 1.37.1 you will need  a  new
+     version  of  proto.h called proto.h.new which can be obtained via
+     this mail server.  In addition, I had to do the following things:
+
+o    Use the -fwritable-strings gcc option.
+
+o    In file fset2.c at line 25, add
+
+#ifdef __STDC__
+Tree *tmake(Tree *root, ...);
+#else
+Tree *tmake();
+#endif
+
+o    Remove the definition of scarfPAction():
+
+char *scarfPAction();
+
+from the top of files: antlr.c and scan.c (right  before  #include  of
+attrib.h).
+
+o    In file trax.h, change
+
+#ifdef ANSI
+
+to
+
+#ifdef __STDC__
+
+Also, change the definition of mFree to:
+
+void mFree(void *, char *, int);
+
+o    In file lexhelp.c, change line 41 to read
+
+int begin, end;
+
+which changes them from chars to ints.
+
+
+
+
+
+                                                                Page 3
+
+                                                                 PCCTS
+
+
+o    In file bits.c, line 295 change eMsg1 to eMsgd:
+
+require(j<NumLexClasses, eMsgd("No label or expr for token %d",i));
+
+o    In file, gen.c, change line 56 to
+
+static void dumpRetValAssign(char *, char *);
+
+And, add
+
+static dumpAfterActions(FILE *output);
+
+right after on line 57.  Add the non-ANSI version at line 60
+
+static dumpAfterActions();
+
+o    In file misc.c, change line 313 to read:
+
+void *e;
+
+o    In file trax.c in the support/trax directory, change line 401  to
+     read:
+
+pChk( (char *)p+sizeof(Trax) );
+
+Also, change line 232 to read:
+
+void *p;
+
+I think that that includes everything.  Good luck.
+
+(10) The manual references a set of memory allocation  debugging  rou-
+     tines called "trax.h".  It indicates that they are in the support
+     directory.  This is not the case.  If you are interested, mail to
+     'parrt@ecn.purdue.edu' (a human) for a copy.
+
+(11) As per the manual, PCCTS had a problem with multiple ANTLR  macro
+     invocations.   This has been fixed (we think).  In file dlgauto.h
+     in the pccts/h directory make the following additions:
+
+zzrdstream( f )
+FILE *f;
+{
+    zzline = 1;
+    zzstream_in = f;
+    zzfunc_in = NULL;
+    zzcharfull = 0;     /* TJP added May 1992 */ <-------- ADD
+}
+
+zzrdfunc( f )
+int (*f)();
+{
+    zzline = 1;
+    zzstream_in = NULL;
+
+
+
+                                                                Page 4
+
+                                                                 PCCTS
+
+
+    zzfunc_in = f;
+    zzcharfull = 0;     /* TJP added May 1992 */ <-------- ADD
+}
+
+You should be able to do this:
+
+parse(f1,f2)
+FILE *f1, *f2;
+{
+     ANTLR(grammar(), f1);
+     ANTLR(grammar(), f2);
+}
+
+Before, the second invocation of the ANTLR macro did not know that  it
+needed to get another character before beginning.  Let us know if this
+screws up anything  else.   Be  aware  that  switching  between  input
+streams  will not work because characters are lost when switching to a
+new stream.
+
+(12) Character delimiters within ANTLR actions cause problems: e.g.
+
+    << '"' >>
+
+
+(13) Marlin Prowell found a bug in the parameter passing code  genera-
+     tion.  He reports:
+     I traced the error to the strmember() routine  (in  lex.c)  which
+     uses  too  simple an algorithm to test if one string is contained
+     within another.  The routine is only used  to  determine  if  the
+     var-part of $var is contained in the parameter or result strings,
+     as in:
+
+    strmember ("int x, int y", "i");
+
+The strmember function will return true if "i" matches any letter, not
+just  when "i" matches an entire word.  It should return true when the
+second parameter is a *word* in the first parameter.  I include  below
+a  revised (and overly cautious) version of strmember.  This fixes the
+problem I described above, and PCCTS now produces correct code for the
+example.
+
+    /* check to see if string e is a word in string s */
+    int
+    strmember(s, e)
+    char *s, *e;
+    {
+        register char *p;
+        require(s!=NULL&&e!=NULL, "strmember: NULL string");
+
+        if ( *e==' ' ) return 1;   /* empty string is always member */
+        do {
+            while ( *s!=' ' && !isalnum(*s) && *s!='_' )
+                ++s;
+            p = e;
+
+
+
+                                                                Page 5
+
+                                                                 PCCTS
+
+
+            while ( *p!=' ' && *p==*s ) {p++; s++;}
+            if ( *p==' ' ) {
+                if ( *s==' ' ) return 1;
+                if ( !isalnum (*s) && *s != '_' ) return 1;
+            }
+            while ( isalnum(*s) || *s == '_' )
+                ++s;
+        } while ( *s!=' ' );
+        return 0;
+    }
+
+Marlin Prowell
+mbp@nyssa.wa7ipx.ampr.org
+
+
+(14) A bug in ANTLR code generation for k>=2 was found.  The  bug  was
+     due  to  the grammar analysis phase's inability to detect invalid
+     LL(k) FIRST trees.  For example,
+
+a   :   A A
+    |   b B
+    ;
+
+b   :   {C} A
+    ;
+
+generated invalid code:
+
+        ...
+        if ( (LA(1)==A) && (LA(2)==A) && !(LA(1)==A) ) {
+                zzmatch(A); zzCONSUME;
+                zzmatch(A); zzCONSUME;
+        }
+        else if ( (LA(1)==A || LA(1)==C) && (LA(2)==A || LA(2)==B) ) {
+                b();
+                zzmatch(B); zzCONSUME;
+        }
+        ...
+
+This has been corrected to generate (in my latest version):
+
+        ...
+        if ( (LA(1)==A) && (LA(2)==A) ) {
+                zzmatch(A); zzCONSUME;
+                zzmatch(A); zzCONSUME;
+        }
+        else if ( (LA(1)==A || LA(1)==C) && (LA(2)==A || LA(2)==B) ) {
+                b();
+                zzmatch(B); zzCONSUME;
+        }
+        ...
+
+Terence Parr
+
+
+
+
+                                                                Page 6
+
+                                                                 PCCTS
+
+
+(15) ANTLR attempts to read from a closed file  sometimes.   This  was
+     caused  by  ANTLR's  insistence  upon  always  getting the next k
+     tokens of lookahead  instead  of  upon  demand.   Upon  EOF,  the
+     current  input  file was closed during the EOF lexical action and
+     then ANTLR tried to fill its  lookahead  queue.   This  has  been
+     fixed in our version, but appears not to be much trouble for any-
+     one since we haven't heard anything.  Next release will have many
+     fixes.
+
+
+(16) In charptr.h, the macro zzdef0 was incorrect.  The correct  macro
+     is:
+
+#define zzdef0(a)               {*(a)=NULL;}
+
+Also, the zzcr_attr() function didn't check for the out of memory con-
+dition.  Add
+
+    if ( *a == NULL ) {fprintf(stderr, "zzcr_attr: out of memory!\n"); exit(-1);}
+
+right after the call to malloc().
+
+
+(17) The PASCAL example expression grammar was incorrect.  Rules expr,
+     simpleExpr,  and  term use {...} optional braces when (...)* clo-
+     sure should be used; e.g.
+
+term    : factor {("|"/"| Div | Mod | And ) factor} ;
+
+should be
+
+term    : factor (("|"/"| Div | Mod | And ) factor)* ;
+
+
+(18) Chris Song, dsong@ncsa.uiuc.edu, National Center for Supercomput-
+     ing Applications; found this bug:
+
+line 797 of antlr/misc.c:
+        p->ntype<=NumJuncTypes ...
+should be         NumNodeTypes
+
+
+(19) Chris Song, dsong@ncsa.uiuc.edu, National Center for Supercomput-
+     ing Applications; found this bug:
+
+antlr/lex.c: line 52-57 of genLexDescr
+The first node in the link list LexActions is a sentinal (see
+list_add()). So it should be skipped. The correction is as follows:
+    if (LexActions != NULL)
+    {
+        for (p = LexActions->next; p!=NULL; p=p->next)
+        {
+        ...
+        }
+
+
+
+                                                                Page 7
+
+                                                                 PCCTS
+
+
+    }
+
+
+(20) Chris Song, dsong@ncsa.uiuc.edu, National Center for Supercomput-
+     ing Applications; found this bug:
+
+dlg/automata.c: line 124
+        last_done = NFA_NO(d_state);
+The NFA_NO should be DFA_NO?
+
+
+(21) LL(k) grammar analysis didn't make mucho copies of  EOF  when  it
+     needed to:
+
+type    :   type_name
+    |   {class_name} type_name
+    ;
+
+type_name: ID ;
+
+class_name: ID ;
+
+First alternative should see ( ID ( @ @ ) ), not ( ID @ ).
+
+Also, bug in left_factor: ID ( ID ( @ @ ) became ID not ( ID ( @  @  )
+).
+
+Terence
+
+
+(22) DLG generated spurious crap upon bad argument lists such as  "DLG
+     -j".
+
+
+(23) ANTLR's -p option to print out a grammar without  actions  had  a
+     bug  that  did  not  print  alternative  '|'  operators for {...}
+     subrules.  In addition, this option  has  been  improved  to  not
+     print an extra level of (...) for rules.
+
+
+(24) A bug in set_dif() of set.c  caused  DLG  to  generate  incorrect
+     scanners.   When  set_dif()  had  the empty set subtracted from a
+     non-empty set,  it  incorrectly  returned  an  empty  set.   This
+     prevented the DLG generating correct code for [] and ~[].
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                Page 8
+
+

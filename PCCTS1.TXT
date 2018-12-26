@@ -1,0 +1,124 @@
+
+
+
+PCCTS - The Purdue Compiler Construction Tool Set
+
+
+     PCCTS is a set of public domain software tools designed to facil-
+itate  the  implementation of compilers and other translation systems.
+These tools currently include antlr, dlg and support  code.   In  many
+ways,  PCCTS is similar to a highly integrated version of YACC [Joh78]
+and LEX [Les75]; where antlr (ANother Tool for  Language  Recognition)
+corresponds  to  YACC  and  dlg (DFA-based Lexical analyzer Generator)
+functions like LEX.  However, PCCTS has many additional features which
+make it easier to use for a wider range of translation problems.
+
+     PCCTS grammars contain specifications for lexical  and  syntactic
+analysis,  intermediate-form  construction and error reporting.  Rules
+may employ Extended Backus Naur Form (EBNF) grammar constructs and may
+define  parameters,  return  values  and  local  variables.  Languages
+described in PCCTS are recognized via Strong LL(k) parsers constructed
+in  pure,  human-readable,  C  code.   As a result, standard debugging
+tools can be used to trace and debug PCCTS parsers.   Breakpoints  can
+be  set  so  that parser execution stops before or after grammar frag-
+ments of interest have been recognized.
+
+     PCCTS grammars may contain predicates which allow parsing to be a
+function  of semantics as well as syntax - context-sensitive grammars.
+Backtracking can also be specified to recognized  non-LL(k)  and  non-
+LALR(k)  constructs.   In  addition,  PCCTS supports intermediate-form
+(such as expression-trees) construction via a flexible Abstract-Syntax
+Tree  (AST)  mechanism  which  allows  trees to be built explicitly or
+automatically.  The user explicitly creates trees via a LISP-like tree
+constructor  or  directs  the automatic tree construction facility via
+simple grammar directives.  AST nodes are user-defined  and  are  gen-
+erally a function of attributes.  A default transformation from attri-
+butes ($-variables) to AST nodes  can  be  specified.   Alternatively,
+each tree node can be defined explicitly via an AST node constructor.
+
+
+     PCCTS includes a number of different programs and examples in the
+software  release  package-most  of  which  like  to live in their own
+directories.  The install script will build a standard hierarchy.  The
+PCCTS  executables (antlr, dlg) may be placed anywhere the user wishes
+but the install script places them in the bin directory created during
+installation.
+
+     To begin installation, the user should create a  directory  (usu-
+ally  called  pccts)  where the PCCTS source subtree is to be created.
+If you have the pccts.tar file, then simply place  it  into  the  sub-
+directory and untar with:
+
+tar xvf pccts.tar
+
+Then say "make".  If you have the pccts.bag as sent via email  by  our
+mail  server,  place  it and the install script into the subdirectory.
+To install PCCTS, simply type
+
+
+
+
+                                                                Page 1
+
+                                                                 PCCTS
+
+
+sh install
+
+which will build the standard PCCTS  directory  hierarchy  (under  the
+directory  where  you  ran the install script), unbag all of the files
+and build executable versions of antlr and dlg.
+
+     The examples associated with PCCTS have makefile variables called
+ANTLR,  DLG etc... which must be set according to your personal direc-
+tory structure before make'ing.  Some variables  point  to  the  PCCTS
+executables if the PATH environment variable does not include your bin
+directory.  Also, there are variables  that  point  to  PCCTS  include
+directories and must be changed if you deviate from the standard PCCTS
+installation hierarchy.  antlr and dlg can be built without executable
+versions of themselves (antlr and dlg are written in themselves).
+
+
+     A C program called genmk.c is available in the support  directory
+of the PCCTS release which has the following usage:
+
+genmk project f1.g f2.g ... fn.g
+
+It generates a makefile that creates an executable,  project,  from  a
+set of grammar files.  Typing make will create the executable once the
+makefile has been modified to indicate where the antlr and dlg execut-
+ables reside.
+
+
+dlg(1), antlr(1)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                Page 2
+

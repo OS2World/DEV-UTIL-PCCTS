@@ -1,0 +1,37 @@
+GRM =pascal.g
+LEX_FILE =pscan.dlg
+GSRC=pascal.c err.c pscan.c ttree.c adebug.c
+GOBJ=pascal.o err.o pscan.o ttree.o adebug.o
+
+PCCTS_GEN= pascal.c err.c $(LEX_FILE) pscan.c mode.h tokens.h
+
+SRC =$(GSRC) pmain.c sym.c
+OBJ =$(GOBJ) pmain.o sym.o
+INCL = ../../h
+SYM = ../../support/sym
+ANTLR = ../../bin/antlr
+DLG = ../../bin/dlg
+
+CFLAGS=-I. -I$(INCL)
+AFLAGS= -fl $(LEX_FILE) -gh
+
+pascal : $(OBJ)
+	$(CC) $(CFLAGS) -o pascal $(OBJ)
+
+pascal.c $(LEX_FILE) : $(GRM)
+	$(ANTLR) $(AFLAGS) $(GRM)
+
+mode.h pscan.c : $(LEX_FILE)
+	$(DLG) -C2 $(LEX_FILE) pscan.c
+
+pmain.o : pmain.c pascal.h
+
+pascal.o : pascal.c mode.h tokens.h
+
+sym.o : $(SYM)/sym.c
+	cc -c -o sym.o $(CFLAGS) $(SYM)/sym.c
+
+err.o : err.c
+
+clean:
+	rm $(PCCTS_GEN) *.o

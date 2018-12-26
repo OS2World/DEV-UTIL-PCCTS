@@ -1,0 +1,559 @@
+
+
+
+
+              The Purdue Compiler Construction Tool Set
+
+                         Version 1.06 Update
+
+                           December 1, 1992
+
+
+1.  Enhancements
+
+     This section describes the update of PCCTS Version 1.00  to  Ver-
+sion  1.06.  The list of changes here is not complete since many "lit-
+tle" fixes were made.  Here, we concentrate on the enhancements to the
+system;  file BUGS100 contains a list of the bug fixes incorporated in
+the 1.06 release.  In addition, note that  the  manual  has  not  been
+updated  and will not be until the next major release (or until we get
+around to it).
+
+1.1.  1.06 Is Written in 1.00
+
+     The grammar for the PCCTS meta-language (file  format)  has  been
+implemented in Version 1.00, making heavy use of #lexclass directives.
+File lexhelp.c has been eliminated due to the superiority of  1.00  to
+1.00B.
+
+1.2.  ANTLR Compiles Under ANSI C
+
+     Because of the rewrite of the grammar and some rewrites of  ANTLR
+code,  ANTLR now compiles with ANSI compilers without a wimper (except
+for two "unknown escape sequence" warnings).  Your mileage may vary.
+
+1.3.  Grammar Files Distributed
+
+     antlr.g and dlg_p.g are now included in the  source  distribution
+for  1.06.  Note that the 1.00 PCCTS (both ANTLR and DLG) are required
+to process these grammar files.  DO NOT DESTROY YOUR OLD COPY OF  1.00
+PCCTS (at least save the executables).
+
+1.4.  Script Generates Makefiles for PCCTS Projects
+
+     A C program called genmk.c is available in the support  directory
+of the PCCTS release which has the following usage:
+
+genmk project f1.g f2.g ... fn.g
+
+It generates a makefile that creates an executable,  project,  from  a
+set of grammar files.  For example, genmk t t.g generates:
+
+
+
+
+
+
+
+
+
+
+
+                                                                Page 1
+
+                                                                 PCCTS
+
+
+
+#
+# PCCTS makefile for: t.g
+#
+DLG_FILE = parser.dlg
+ERR_FILE = err.c
+HDR_FILE = stdpccts.h
+TOK_FILE = tokens.h
+K = 1
+ANTLR_H = .
+BIN = .
+ANTLR = $(BIN)/antlr
+DLG = $(BIN)/dlg
+CFLAGS = -I. -I$(ANTLR_H)
+AFLAGS = -fe err.c -fh stdpccts.h -fl parser.dlg -ft tokens.h -k $(K)
+-gk
+DFLAGS = -C2 -i
+GRM = t.g
+SRC = scan.c t.c err.c
+OBJ = scan.o t.o err.o
+
+
+
+t: $(OBJ) $(SRC)
+        cc -o t $(CFLAGS) $(OBJ)
+
+t.c parser.dlg : t.g
+        $(ANTLR) $(AFLAGS) t.g
+
+scan.c : parser.dlg
+        $(DLG) $(DFLAGS) parser.dlg scan.c
+
+
+This program is handy when beginning a new PCCTS project or when first
+learning about PCCTS.
+
+1.5.  DLG Supports Case Insensitive Scanners
+
+     DLG has two new options which provide control over the case  sen-
+sitivity  of  the generated scanner.  Specifically, case insensitivity
+implies that when a character is referenced in a  regular  expression,
+DLG  behaves  as  if the user had typed both upper and lower case ver-
+sions of that character; i.e. (a|A) where a is  some  character.   The
+new options are:
+
+-ci  Make lexical analyzer case insensitive
+
+-cs  Make lexical analyzer case sensitive (default).
+
+1.6.  Delayed Lookahead Fetches in Generated Parser
+
+     Currently, PCCTS generates parsers which always have k tokens  of
+lookahead.   This is done by following the strategy that another token
+is fetched (zzCONSUME) when one is matched (zzmatch).  This can  be  a
+
+
+
+                                                                Page 2
+
+                                                                 PCCTS
+
+
+problem for actions that need to occur after a token has been matched,
+but before the next token of lookahead is fetched.  This  is  somewhat
+overcome  in  PCCTS  1.00  by delaying the fetch if an action is found
+immediately after a token reference.  With the new  delayed  lookahead
+scheme,  the  next  token  is  not  consumed  until  the next match is
+required.  This means that any  action  before  the  next  match  (not
+necessarily  adjacent to the previous match) will be executed before a
+lookahead fetch occurs.  Turn on ANTLR option -gk and DLG option -i to
+enable  this  feature.   This  feature  appears to work with AST's and
+attributes with the constraints mentioned below in the  incompatibili-
+ties  section  (e.g.  use of LA(i) and LATEXT(i) has been restricted).
+It has been tested with the C (k>1 and Pascal (k==1) examples provided
+in the release and with several other large grammars.
+
+     This feature is primarily useful for  developers  of  interactive
+tools.   Previously, it was really hard to get PCCTS to generate truly
+interactive tools.  It appeared as if the parser was always waiting on
+a  token  fetch  rather than executing an appropriate action.  E.g. in
+PCCTS 1.00,
+
+
+a : ( "A" "B" "C" "\n" ) <<printf("got it\n");>>
+  ;
+
+
+would not print got it until one token  after  the  newline  had  been
+typed.   PCCTS  1.06  will  generate  parsers  that  print the message
+immediately upon newline and will exit  without  waiting  for  another
+token as there are no token references following the action.
+
+     Another way in which delayed lookahead is useful lies in transla-
+tors which add symbols to the symbol table which must be examined by a
+lexical action.  If a lookahead fetch occurs  too  fast,  the  lexical
+action may miss the introduction of a symbol into the symbol table.
+
+1.7.  Tutorials Available
+
+     With release 1.06, we  are  distributing  both  a  beginning  and
+advanced  tutorial.  They have not been thoroughly "debugged" much are
+much better than nothing:
+
+Beginning
+     This tutorial introduces the  basic  functionality  of  PCCTS  by
+     example.   The  user  need not be familiar with parsing theory or
+     other compiler tools, but any familiarity  reduces  the  learning
+     curve substantially.
+
+Advanced
+     Constructing a translator can be viewed as an  iterative  refine-
+     ment  process  moving  from language recognition to intermediate-
+     form  transformation.   This  tutorial  presents   one   possible
+     sequence of refinements.  It uses as many features of PCCTS as is
+     reasonable without regards to optimality.  It develops a compiler
+     for  a  simple  string  manipulation  language  called  sc.   The
+
+
+
+                                                                Page 3
+
+                                                                 PCCTS
+
+
+     resulting compiler generates code for a simple stack machine.
+
+1.8.  Error Messages for k>1
+
+     Previous versions of PCCTS did not handle error message correctly
+for  k>1.  For example, with two tokens of lookahead and the following
+grammar:
+
+
+a : "A" "B" "D"
+  | "A" "C" "E"
+  ;
+
+
+an incorrect input of A D D would yield:
+
+
+line 1: syntax error at "A" missing A
+
+
+which is wrong (and incredibly confusing).  The  new  error  mechanism
+generates the following error message upon the same incorrect input:
+
+
+line 1: syntax error at "A D"; "D" not in { B C }
+
+
+which is infinitely superior.   Unfortunately,  situations  may  arise
+when  even  this  method will give an invalid message.  This may occur
+when alternatives have lookahead sequences which are  permutations  of
+the same tokens.
+
+     The definition of the standard error reporting function,  zzsyn()
+has been modified.  The parameter list is now:
+
+
+void
+zzsyn(char *text,
+      int tok,
+      char *egroup,
+      unsigned *eset,
+      int etok,
+      int k,
+      char *bad_text);
+
+
+Users can ignore this as it is transparent to them; unless, of course,
+the standard error reporting must be modified.  In addition, zzFAIL is
+now a function rather than a macro.
+
+1.9.  Trace Facility has Exit Macro
+
+     Previously, only an entry trace macro  was  inserted  in  parsers
+when  the  -gd  ANTLR option was used.  An exit macro has been defined
+
+
+
+                                                                Page 4
+
+                                                                 PCCTS
+
+
+which resulted in zzTRACE becoming zzTRACEIN.  Also, a  default  trace
+macro  prints  out  "enter rule rule"  if  no default trace macros are
+defined.  To define your own, the macro definitions must appear in the
+#header action.  As before, the sole argument to the trace routines is
+a string representing the rule which has been entered or is  about  to
+be exited.
+
+1.10.  Resource Limitation
+
+     Occasionally, ANTLR is unable to analyze a grammar  submitted  by
+the  user.   This  rare  situation  can only occur when the grammar is
+large and the amount of lookahead is greater than  one.   A  nonlinear
+analysis  algorithm  is  used  by  PCCTS to handle the general case of
+LL(k) parsing.  The average complexity of analysis, however,  is  near
+linear  due to some fancy footwork in the implementation which reduces
+the number of calls to the full LL(k) algorithm.
+
+     To avoid the situation where ANTLR takes 23 hours of CPU time and
+then  runs  out of virtual memory, use the -rl n resource limit option
+where n is the maximum number of tree nodes to be used by the analysis
+algorithm.   An  error  message  will  be  displayed, if this limit is
+reached, which indicates which grammar construct  was  being  analyzed
+when  ANTLR hit a non-linearity.  Use this option if ANTLR seems to go
+off to lunch and your disk start swapping; try n=10000 to start.  Once
+the  offending  construct has been identified, try to remove the ambi-
+guity that ANTLR was trying to overcome with large lookahead analysis.
+Future  versions  of PCCTS may incorporate a known algorithm that does
+not exhibit this exponential behavior.
+
+1.11.  Rule Prefix Option
+
+     An ANTLR option  has  been  added  that  prefixes  all  functions
+corresponding  to  rules  with  a prefix.  This can be used to provide
+symbol hiding in your project to isolate the parser.  It can  also  be
+used  to allow rule names that correspond to C keywords such as if and
+typedef.
+
+1.12.  Standard PCCTS Header
+
+     Two new ANTLR options have been added that control  the  creation
+of  a  standard  PCCTS header file - stdpccts.h.  Option -gh instructs
+ANTLR to create a file, stdpccts.h unless -fh is used, which  contains
+all  header  information needed by non-PCCTS generated files that want
+to access PCCTS symbols.  For example,  it  indicates  the  k  of  the
+parser,  whether  trees are being constructed, whether lookahead is to
+be delayed, and indicates what  the  user  specified  in  the  #header
+action in the grammar file.  Previously, the user had to manually con-
+struct this information from the grammar file in order  to  place  the
+information  in  a non-PCCTS C file.  The -fh option is merely used to
+rename stdpccts.h.
+
+1.13.  Doubly-Linked AST's
+
+     A new function is available in ast.c which will  doubly-link  any
+
+
+
+                                                                Page 5
+
+                                                                 PCCTS
+
+
+tree  that  is  passed  in.   To use this option, the user must define
+zzAST_DOUBLE in the #header directive or on the command-line of the  C
+compile.   This  defines  left  and up fields automatically in the AST
+node typedef.   ANTLR  generated  parsers,  normally,  only  construct
+singly-linked  trees.  The fields can be filled in via code similar to
+the following:
+
+
+#header <<
+#define AST_FIELDS      user-fields;
+>>
+
+<<
+main()
+{
+        AST *root = NULL;
+
+        ANTLR(start(&root), stdin);
+        zzdouble_link(root, NULL, NULL);
+}
+
+
+where the function is defined as:
+
+
+zzdouble_link(AST *t, AST *left, AST *up);
+
+
+1.14.  C++ Compatible Parsers
+
+     PCCTS parsers may now be compiled with C++  compilers;  i.e.  the
+output is more ANSI C-like than before.  It has been successfully com-
+piled with GCC 2.2, but not with GCC 1.37.  We do not  guarantee  any-
+thing.   To  be safe, use the -ga option so that PCCTS generates ANSI-
+style prototypes for functions generated  from  rules.   As  a  simple
+example, consider:
+
+
+#header <<
+#include "charbuf.h"
+>>
+
+#token "[       0" <<zzskip();>>
+
+<<
+main()
+{
+    ANTLR(a(), stdin);
+}
+>>
+
+a   :   "A" "B"
+    ;
+
+
+
+
+                                                                Page 6
+
+                                                                 PCCTS
+
+
+which does not do much, but does compile with G++ 2.2  except  that  a
+few  warnings  are generated concerning exit() and strncpy() not being
+declared before use.  This is trivial to fix, of course - include  the
+C++ string include file and define exit().
+
+1.15.  Predicated Parsing - EXTREMELY ALPHA
+
+     Normally, parsing is  a  function  of  syntax  alone.   Semantics
+(meaning/value  of  the input) are not taken into account when parsing
+decisions are made.  For example, the following grammar is LL(k) ambi-
+guous:
+
+
+a   :   ( expr | decl )+
+    ;
+
+/* recognize 'a+b+c+...' */
+expr:   WORD ("+" WORD)*
+    ;
+
+/* recognize 'int i' or 'user_type j' etc... */
+decl:   (   WORD
+        |   "int"
+        )
+        WORD
+    ;
+
+
+because, upon WORD, rule a does not know whether an expr or a decl  is
+coming.   However, adding predicates (actions suffixed with a '?') can
+disambiguate the decision.  E.g.
+
+
+a   :   ( expr | decl )+
+    ;
+
+/* recognize 'a+b+c+...' */
+expr:   <<isVAR(LATEXT(1))>>? WORD ("+" WORD)*
+    ;
+
+/* recognize 'int i' or 'user_type j' etc... */
+decl:   (   <<isTYPE(LATEXT(1))>>? WORD
+        |   "int"
+        )
+        WORD
+    ;
+
+
+where isVAR and isTYPE  are  user-defined  macros  or  functions  that
+return  true or false after looking up the symbol in the symbol table.
+ANTLR attempts to find predicates when a syntactic  ambiguity  occurs.
+Otherwise,  the  predicates are simply tested to ensure semantic vali-
+dity.  ANTLR still prints out the ambiguity message, for  the  moment,
+but generates code in rule a that looks (kind of) like this:
+
+
+
+                                                                Page 7
+
+                                                                 PCCTS
+
+
+
+a()
+{
+        ...
+    while ( ... ) {
+        if ( (isVAR(LATEXT(1)) && LA(1)==WORD) && LA(1)==WORD ) {
+            expr();
+        }
+        else if ( (isTYPE(LATEXT(1)) && LA(1)==WORD) &&
+                  (LA(1)==WORD || LA(1)=="int") ) {
+            decl();
+        }
+    }
+        ...
+}
+
+
+ANTLR has "hoisted" the predicates from the other rules for use in the
+prediction  decision  for rule a.  Currently, at most one predicate is
+hoisted.  In addition, there may be nothing between a decision  and  a
+predicate  for  it to be hoisted; i.e. no token or rule references and
+certainly no actions.  Predicates should be side-effect free, as well.
+The  context under which predicates are currently evaluated may not be
+computed correctly.  IT DOES NOT WORK WITH LARGE GRAMMARS and has only
+been tested on small test cases.
+
+     Why are we even mentioning them  if  they  do  not  really  work?
+Because  we  want users to play with them to find better ways of doing
+things and to find new uses for them.  We really want user feedback on
+these critters before a full implementation is developed.  Please send
+mail to parrt@ecn.purdue.edu, hankd@ecn.purdue.edu or  use  the  email
+server mechanism at pccts@ecn.purdue.edu.
+
+2.  Acknowledgements
+
+     We acknowledge Dan Lawrence of MDBS for the new  error  reporting
+facility  concering greater than one token of lookahead; Dana Hoggatt,
+also of MDBS, suggested the rule prefix idea  (-gp  option)  and  beta
+tested 1.06.  ### Beta testers: Peter Dahl of U of MN, ...
+
+3.  Machine Compatibility
+
+     PCCTS Version 1.06 has been successfully tested on the  following
+platforms:
+
+Sun 3/60
+
+Sun SPARC I, II
+
+DEC 5000
+
+Linux on 386PC
+
+IBM RS6000
+
+
+
+                                                                Page 8
+
+                                                                 PCCTS
+
+
+4.  Incompatibilities
+
+     Calls to zzTRACE are no longer generated by the -gd option.  Now,
+zzTRACEIN,  zzTRACEOUT  are  called  at the beginning and end of func-
+tions, respectively.
+
+     Attribute variables in strings in actions  need  to  be  escaped,
+\$i, whereas, before, $i was ok.
+
+     The user should no longer set the next token of lookahead or  the
+text  of  the  next  token  in  the  lexical  analyzer using LA(1) and
+LATEXT(1).  This is incompatible with the -gk option; hence,  NLA  and
+NLATEXT should be used instead where the N means "next".
+
+5.  Future Work:
+
+     Predicates are currently under development with an in-house  ver-
+sion  of PCCTS.  We expect a release in the Spring that allows parsing
+to be a function of syntax as well as semantics.
+
+     Attribute names  are  expected  to  be  enhanced.   For  example,
+instead of $i, $token_name could be used:
+
+
+a : WORD TYPE <<printf("%s %s\n", $WORD, $TYPE);>>
+  ;
+
+
+     We anticipate a version that supports object-oriented programming
+and  generates C++ instead of ANSI C.  For the moment, PCCTS is compa-
+tible with C++, but future versions will support C++.
+
+     Future versions, both C and C++, will be able to refer  to  PCCTS
+symbols  by  pccts.symbol  instead  of  zzsymbol.   E.g. zzskip() will
+become pccts.skip().
+
+     DLG will soon use lookahead of its own to allow  the  recognition
+of  more  complicated expressions; specifically, those which have left
+substrings in common with other regular expressions.
+
+     We expect future versions of PCCTS to dump grammar  analysis  and
+parser construction statistics such as how many rules required 1 token
+of lookahead, how many ambiguities etc...
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                Page 9
+

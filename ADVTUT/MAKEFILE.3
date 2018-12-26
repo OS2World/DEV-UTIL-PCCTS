@@ -1,0 +1,24 @@
+#
+# Makefile for 1.0x tutorial: tut3.g
+# ANTLR creates parser.dlg, err.c, tut1.c
+# DLG creates scan.c
+#
+CFLAGS= -I. -I../h
+GRM=tut3
+ANTLR=../bin/antlr
+DLG=../bin/dlg
+SYM=../support/sym
+SRC=scan.c $(GRM).c err.c $(SYM)/sym.c
+OBJ=scan.o $(GRM).o err.o sym.o
+
+tutorial: $(OBJ) $(SRC)
+	cc -o $(GRM) $(OBJ)
+
+$(GRM).c parser.dlg : $(GRM).g
+	$(ANTLR) -k 2 $(GRM).g
+
+sym.o : $(SYM)/sym.c
+	cc -c -o sym.o $(CFLAGS) $(SYM)/sym.c
+
+scan.c : parser.dlg
+	$(DLG) -C2 parser.dlg scan.c

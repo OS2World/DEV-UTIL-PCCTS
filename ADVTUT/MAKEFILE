@@ -1,0 +1,35 @@
+#
+# Overall makefile for PCCTS 1.0x Advanced Tutorial
+#
+# Terence Parr
+# Purdue University Electrical Engineering
+# December 1, 1992
+#
+all:
+	make scrub
+	make -f makefile.1
+	make scrub
+	make -f makefile.2
+	make scrub
+	make -f makefile.3
+	make scrub
+	make -f makefile.4
+	
+tut1: tut1.g
+	make scrub
+	make -f makefile.1
+
+tut2: tut2.g
+	make scrub
+	make -f makefile.2
+
+tut3: tut3.g
+	make scrub
+	make -f makefile.3
+
+tut4: tut3.g
+	make scrub
+	make -f makefile.4
+
+scrub:
+	rm -f *.o core parser.dlg mode.h tokens.h err.c tut[1-4].c

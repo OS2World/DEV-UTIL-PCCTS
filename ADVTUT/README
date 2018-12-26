@@ -1,0 +1,21 @@
+
+             Welcome to the Advanced Tutorial for PCCTS 1.0x
+
+This directory contains 5 makefiles--a main one and the four makefiles,
+makefile.?, from the documentation.  The four ANTLR files have also been
+typed in for you as are tut1.g-tut4.g.
+
+Doing a "make -s all" will make all tutorials presented in the documentation.
+A "make -f makefile.i" can be used to make the ith tutorial (it's a good idea to
+do a "make scrub" before each individual make).
+
+The makefiles assume that the tutorial has been placed in a directory at the
+same level as antlr, dlg, support etc...
+
+Good luck,
+
+	The Authors of The Purdue Compiler Construction Tool Set
+
+    Terence J. Parr, parrt@ecn.purdue.edu
+    Henry G. Dietz,  hankd@ecn.purdue.edu
+    Will E. Cohen,   cohenw@ecn.purdue.edu

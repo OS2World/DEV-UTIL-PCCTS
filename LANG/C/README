@@ -1,0 +1,5 @@
+
+Quick note:
+
+You must run any code through the C preprocessor (e.g. "cc -E $(CFLAGS)
+file.c") before sending it to the prototype generator.
